@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Global Mobility & Immigration Dashboard — Applied Intuition</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f4f6fa;
+      --surface: #ffffff;
+      --border: #e3e8f0;
+      --text-primary: #1a2035;
+      --text-secondary: #5a6480;
+      --accent: #2d5be3;
+      --accent-light: #eef2fd;
+      --red: #e63946;
+      --red-light: #fdeaea;
+      --orange: #f4a261;
+      --orange-light: #fef3e9;
+      --yellow: #f9c74f;
+      --yellow-light: #fefbe9;
+      --green: #2dc653;
+      --green-light: #eafbef;
+      --gray: #d1d9e6;
+      --gray-light: #f0f3f8;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text-primary);
+      font-size: 14px;
+      min-height: 100vh;
+    }
+
+    /* HEADER */
+    .header {
+      background: linear-gradient(135deg, #1a2035 0%, #2d3a6e 100%);
+      color: white;
+      padding: 20px 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .header-left h1 { font-size: 20px; font-weight: 700; letter-spacing: -0.3px; }
+    .header-left p { font-size: 12px; color: rgba(255,255,255,0.65); margin-top: 3px; }
+    .header-right { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .filter-group { display: flex; flex-direction: column; gap: 3px; }
+    .filter-group label { font-size: 10px; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.5px; }
+    .filter-group select {
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.2);
+      color: white;
+      padding: 5px 10px;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      outline: none;
+    }
+    .filter-group select option { background: #1a2035; color: white; }
+
+    .badge-urgent {
+      background: var(--red);
+      color: white;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.75; }
+    }
+
+    /* MAIN */
+    .main { padding: 20px 28px; max-width: 1600px; margin: 0 auto; }
+
+    /* KPI ROW */
+    .kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 20px; }
+    .kpi-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      position: relative;
+      overflow: hidden;
+    }
+    .kpi-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: var(--accent);
+      border-radius: 12px 12px 0 0;
+    }
+    .kpi-card.red::before { background: var(--red); }
+    .kpi-card.orange::before { background: var(--orange); }
+    .kpi-card.green::before { background: var(--green); }
+    .kpi-label { font-size: 11px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
+    .kpi-value { font-size: 32px; font-weight: 800; letter-spacing: -1px; line-height: 1; }
+    .kpi-sub { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+    .kpi-icon { position: absolute; right: 14px; top: 14px; font-size: 22px; opacity: 0.15; }
+
+    /* CHARTS ROW */
+    .charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+    @media (max-width: 900px) { .charts-row { grid-template-columns: 1fr; } }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+    }
+    .card-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .card-sub { font-size: 11px; color: var(--text-secondary); margin-bottom: 16px; }
+
+    .chart-container { position: relative; height: 240px; }
+
+    /* FULL WIDTH ROW */
+    .full-row { margin-bottom: 20px; }
+
+    /* HEATMAP */
+    .heatmap-scroll { overflow-x: auto; }
+    .heatmap-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      min-width: 700px;
+    }
+    .heatmap-table th {
+      padding: 8px 12px;
+      text-align: center;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-secondary);
+      border-bottom: 2px solid var(--border);
+      white-space: nowrap;
+    }
+    .heatmap-table th.row-label {
+      text-align: left;
+      width: 170px;
+      color: var(--text-primary);
+    }
+    .heatmap-table td {
+      padding: 8px 10px;
+      text-align: center;
+      vertical-align: middle;
+      border: 1px solid var(--border);
+      cursor: pointer;
+      transition: transform 0.1s, box-shadow 0.1s;
+    }
+    .heatmap-table td:hover { transform: scale(1.08); box-shadow: 0 2px 8px rgba(0,0,0,0.12); z-index: 2; position: relative; }
+    .heatmap-table td.stage-label {
+      text-align: left;
+      font-weight: 600;
+      font-size: 12px;
+      color: var(--text-primary);
+      background: var(--gray-light);
+      cursor: default;
+      transform: none;
+      box-shadow: none;
+    }
+    .heatmap-table td.stage-label:hover { transform: none; box-shadow: none; }
+
+    .heat-none   { background: #f0f3f8; color: #8a93a8; font-size: 11px; }
+    .heat-green  { background: #d4f7e2; color: #1a6e3a; }
+    .heat-yellow { background: #fef9d5; color: #8a6800; }
+    .heat-orange { background: #fde8d0; color: #8a3e00; }
+    .heat-red    { background: #fdd5d5; color: #8a0000; }
+
+    .heat-dot {
+      display: inline-block;
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      margin-right: 5px;
+      vertical-align: middle;
+    }
+
+    .heat-cell-inner { display: flex; align-items: center; justify-content: center; gap: 4px; flex-direction: column; min-height: 40px; }
+    .heat-cell-label { font-size: 10px; font-weight: 600; letter-spacing: 0.3px; }
+    .heat-cell-note  { font-size: 9px; opacity: 0.8; max-width: 80px; line-height: 1.3; }
+
+    /* LEGEND */
+    .heat-legend { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 14px; }
+    .heat-legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-secondary); }
+    .legend-dot { width: 12px; height: 12px; border-radius: 3px; }
+
+    /* ALERTS TABLE */
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+    @media (max-width: 900px) { .two-col { grid-template-columns: 1fr; } }
+
+    .alert-list { display: flex; flex-direction: column; gap: 8px; max-height: 320px; overflow-y: auto; }
+    .alert-item {
+      padding: 10px 14px;
+      border-radius: 8px;
+      border-left: 4px solid;
+      background: white;
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--red);
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .alert-item:hover { background: #fafbfd; }
+    .alert-item.red    { border-left-color: var(--red); }
+    .alert-item.orange { border-left-color: var(--orange); }
+    .alert-item.yellow { border-left-color: var(--yellow); }
+    .alert-name { font-weight: 700; font-size: 12px; color: var(--text-primary); }
+    .alert-meta { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+    .alert-tag {
+      display: inline-block;
+      padding: 1px 7px;
+      border-radius: 10px;
+      font-size: 10px;
+      font-weight: 700;
+      margin-top: 4px;
+    }
+    .tag-red    { background: var(--red-light); color: var(--red); }
+    .tag-orange { background: var(--orange-light); color: #b35800; }
+    .tag-yellow { background: var(--yellow-light); color: #8a6800; }
+    .tag-blue   { background: var(--accent-light); color: var(--accent); }
+    .tag-green  { background: var(--green-light); color: #1a6e3a; }
+
+    /* MOBILITY TABLE */
+    .mobility-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .mobility-table th {
+      padding: 8px 12px;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-secondary);
+      border-bottom: 2px solid var(--border);
+      background: var(--gray-light);
+    }
+    .mobility-table td {
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    .mobility-table tr:hover td { background: #fafbfd; }
+    .status-pill {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 10px;
+      font-weight: 700;
+    }
+
+    /* TOOLTIP */
+    .tooltip-modal {
+      display: none;
+      position: fixed;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 22px 26px;
+      z-index: 1000;
+      max-width: 380px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.15);
+    }
+    .tooltip-modal.show { display: block; }
+    .tooltip-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.2);
+      z-index: 999;
+    }
+    .tooltip-overlay.show { display: block; }
+    .tooltip-title { font-size: 14px; font-weight: 700; margin-bottom: 8px; }
+    .tooltip-body  { font-size: 12px; color: var(--text-secondary); line-height: 1.5; }
+    .tooltip-close { position: absolute; top: 12px; right: 14px; cursor: pointer; font-size: 18px; color: var(--text-secondary); }
+    .tooltip-close:hover { color: var(--text-primary); }
+
+    .section-divider {
+      font-size: 12px; font-weight: 700;
+      color: var(--text-secondary);
+      text-transform: uppercase; letter-spacing: 1px;
+      margin-bottom: 10px;
+      margin-top: 4px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .section-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-left">
+    <h1>🌐 Global Mobility & Immigration Dashboard</h1>
+    <p>Applied Intuition · Last updated: March 9, 2026 · Sources: immigration@applied.co &amp; globalmobility@applied.co</p>
+  </div>
+  <div class="header-right">
+    <div class="filter-group">
+      <label>Program</label>
+      <select id="filterProgram" onchange="applyFilters()">
+        <option value="all">All Programs</option>
+        <option value="immigration">Immigration</option>
+        <option value="mobility">Global Mobility</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>Severity</label>
+      <select id="filterSeverity" onchange="applyFilters()">
+        <option value="all">All Issues</option>
+        <option value="urgent">Urgent Only</option>
+        <option value="friction">Friction Points</option>
+      </select>
+    </div>
+    <div class="badge-urgent" id="urgentBadge">⚡ 5 Urgent</div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- KPI ROW -->
+  <div class="kpi-row">
+    <div class="kpi-card">
+      <span class="kpi-icon">📋</span>
+      <div class="kpi-label">Total Immigration Cases</div>
+      <div class="kpi-value">357</div>
+      <div class="kpi-sub">282 NIV · 70 Green Card · 5 Subsidiary</div>
+    </div>
+    <div class="kpi-card green">
+      <span class="kpi-icon">✈️</span>
+      <div class="kpi-label">Mobility Participants</div>
+      <div class="kpi-value">51</div>
+      <div class="kpi-sub">Active across 5 countries</div>
+    </div>
+    <div class="kpi-card red">
+      <span class="kpi-icon">🚨</span>
+      <div class="kpi-label">Urgent Items</div>
+      <div class="kpi-value" id="kpiUrgent">5</div>
+      <div class="kpi-sub">Require immediate action</div>
+    </div>
+    <div class="kpi-card orange">
+      <span class="kpi-icon">⏳</span>
+      <div class="kpi-label">Friction Points</div>
+      <div class="kpi-value" id="kpiFriction">10</div>
+      <div class="kpi-sub">Active delays or blockers</div>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-icon">📝</span>
+      <div class="kpi-label">PERM Cases</div>
+      <div class="kpi-value">55</div>
+      <div class="kpi-sub">Green Card recruitment track</div>
+    </div>
+    <div class="kpi-card orange">
+      <span class="kpi-icon">⚠️</span>
+      <div class="kpi-label">H-1B Lottery 2026</div>
+      <div class="kpi-value">In Prep</div>
+      <div class="kpi-sub">Salary assessment underway</div>
+    </div>
+  </div>
+
+  <!-- CHARTS ROW -->
+  <div class="charts-row">
+    <!-- Immigration by Petition Type -->
+    <div class="card">
+      <div class="card-title">
+        Immigration Cases by Petition Type
+        <span style="font-size:11px;font-weight:400;color:var(--text-secondary)">357 total cases</span>
+      </div>
+      <div class="card-sub">Active NIV + Green Card pipeline (as of Nov 2025 tracker)</div>
+      <div class="chart-container">
+        <canvas id="petitionChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Global Mobility Participants -->
+    <div class="card">
+      <div class="card-title">
+        Global Mobility Participants by Program
+        <span style="font-size:11px;font-weight:400;color:var(--text-secondary)">51 active</span>
+      </div>
+      <div class="card-sub">International rotations, secondments &amp; relocations (EY-managed)</div>
+      <div class="chart-container">
+        <canvas id="mobilityChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- HEATMAP -->
+  <div class="full-row">
+    <div class="card">
+      <div class="card-title">Friction &amp; Slowdown Heatmap — Process Stage × Program Type</div>
+      <div class="card-sub">Identifies where delays and blockers are concentrated across the immigration and mobility lifecycle. Click any cell for details.</div>
+      <div class="heat-legend">
+        <div class="heat-legend-item"><div class="legend-dot" style="background:#d4f7e2;border:1px solid #b2e8c5"></div> No Issues</div>
+        <div class="heat-legend-item"><div class="legend-dot" style="background:#fef9d5;border:1px solid #f0e28a"></div> Minor Delay</div>
+        <div class="heat-legend-item"><div class="legend-dot" style="background:#fde8d0;border:1px solid #f4c08a"></div> Friction</div>
+        <div class="heat-legend-item"><div class="legend-dot" style="background:#fdd5d5;border:1px solid #f4a0a0"></div> Urgent / Blocked</div>
+        <div class="heat-legend-item"><div class="legend-dot" style="background:#f0f3f8;border:1px solid #d1d9e6"></div> N/A</div>
+      </div>
+      <div class="heatmap-scroll">
+        <table class="heatmap-table" id="heatmap"></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM TWO-COL -->
+  <div class="two-col">
+    <!-- Urgent Alerts -->
+    <div class="card">
+      <div class="card-title">Urgent &amp; High-Priority Items</div>
+      <div class="card-sub">Sourced from recent email activity — action required</div>
+      <div class="alert-list" id="alertList"></div>
+    </div>
+
+    <!-- Mobility Case Table -->
+    <div class="card">
+      <div class="card-title">Global Mobility Active Cases</div>
+      <div class="card-sub">Current participants and filing/process status</div>
+      <div style="overflow-x:auto;max-height:320px;overflow-y:auto">
+        <table class="mobility-table" id="mobilityTable">
+          <thead>
+            <tr>
+              <th>Employee</th>
+              <th>Route</th>
+              <th>Program</th>
+              <th>Status</th>
+              <th>Tax Support</th>
+            </tr>
+          </thead>
+          <tbody id="mobilityTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<!-- Tooltip Modal -->
+<div class="tooltip-overlay" id="tooltipOverlay" onclick="closeModal()"></div>
+<div class="tooltip-modal" id="tooltipModal">
+  <span class="tooltip-close" onclick="closeModal()">✕</span>
+  <div class="tooltip-title" id="modalTitle"></div>
+  <div class="tooltip-body" id="modalBody"></div>
+</div>
+
+<script>
+// ─── DATA ──────────────────────────────────────────────────────────
+const PETITION_DATA = [
+  { type: 'H-1B (New & Extension)', count: 160, color: '#2d5be3', group: 'NIV' },
+  { type: 'PERM (Green Card)', count: 55, color: '#7b61ff', group: 'Green Card' },
+  { type: 'I-140 / AOS', count: 15, color: '#a78bfa', group: 'Green Card' },
+  { type: 'O-1 / O-1A', count: 30, color: '#f4a261', group: 'NIV' },
+  { type: 'TN (Canada/Mexico)', count: 18, color: '#2dc653', group: 'NIV' },
+  { type: 'Business Visitor (SA, DE, UK)', count: 25, color: '#e63946', group: 'NIV' },
+  { type: 'OPT / F-1 (i-983)', count: 22, color: '#06b6d4', group: 'NIV' },
+  { type: 'B-1 In Lieu of H-1B', count: 12, color: '#fb8500', group: 'NIV' },
+  { type: 'Mechanical Simulation', count: 5, color: '#8d99ae', group: 'Subsidiary' },
+  { type: 'Other NIV', count: 15, color: '#adb5bd', group: 'NIV' },
+];
+
+const MOBILITY_DATA = [
+  { program: 'Japan Rotations (2025)', count: 25, color: '#e63946' },
+  { program: 'Germany ↔ US Relocations', count: 8, color: '#2d5be3' },
+  { program: 'Japan Short-Term Assignments', count: 6, color: '#f4a261' },
+  { program: 'UK Assignments', count: 5, color: '#7b61ff' },
+  { program: 'India Secondments', count: 4, color: '#2dc653' },
+  { program: 'Other', count: 3, color: '#8d99ae' },
+];
+
+const HEATMAP_STAGES = [
+  'Case Initiation',
+  'Document Collection',
+  'Employer / Sponsor Review',
+  'Filing / Submission',
+  'Gov. Processing & RFEs',
+  'Visa Appointment',
+  'Post-Approval Steps',
+  'Tax Filing & Payment',
+];
+
+const HEATMAP_COLS = [
+  'H-1B', 'O-1 / O-1A', 'PERM', 'TN', 'Biz Visitor', 'OPT / F-1',
+  'Japan Rotation', 'Secondments', 'Relocations',
+];
+
+// 0=N/A, 1=green, 2=yellow, 3=orange, 4=red
+const HEATMAP_CELLS = [
+  // Stage:       H-1B  O-1  PERM  TN  BizVis  OPT  JapRot  Second  Reloc
+  /* Initiation */  [2,    2,   1,    4,  1,      1,   1,      1,      1  ],
+  /* Doc Collect */ [2,    3,   2,    2,  2,      1,   3,      1,      2  ],
+  /* Employer Rev */[2,    1,   2,    1,  1,      1,   2,      1,      1  ],
+  /* Filing     */  [2,    4,   2,    4,  3,      1,   0,      1,      0  ],
+  /* Gov Process */ [4,    2,   3,    2,  2,      1,   0,      0,      0  ],
+  /* Visa Appt  */  [1,    1,   0,    2,  3,      1,   0,      0,      0  ],
+  /* Post-Approv */ [2,    1,   1,    1,  1,      2,   0,      1,      2  ],
+  /* Tax Filing */  [0,    0,   0,    0,  0,      0,   4,      2,      2  ],
+];
+
+const HEATMAP_NOTES = [
+  ['Merit delay blocks salary confirm', 'New: Assessment emails active', '', 'URGENT: Harris TN initiation complaint', '', '', '', '', ''],
+  ['', 'Ref letters missing (Kim, Mirlach)', 'Ad placements pending (3 cases)', '', 'SA: docs in final stage (4 employees)', '', 'EY file sharing access delay', '', ''],
+  ['Prevailing wage approval needed', '', 'Job posting 10-day requirement', '', '', '', 'Comp data (payroll/equity) sharing', '', ''],
+  ['H-1B 2026 lottery plan in progress', 'URGENT: Sung O-1 filed at deadline', 'PERM NOF posted for Ghosh & Jotwani', 'URGENT: Morales TN start date queried', 'Saudi Arabia: 4 employees at submission', '', '', '', ''],
+  ['~8 month USCIS wait; Yin RFE open', 'Sung: receipt expected 1-2 days', 'Multiple PERM at recruitment stage', '', '', '', '', '', ''],
+  ['', '', '', '', 'DE: Peddagolla - only Mar 30 avail', '', '', '', ''],
+  ['George: advised not to travel', '', '', '', '', 'i-983 DocuSign workflows active', '', 'Secondment letters signed', 'Tax support setup needed (Yang, Chen)'],
+  ['', '', '', '', '', '', 'URGENT: Japan deadline Mar 15; payment process blocked', 'Japan tax support confirmed (Chen, Li)', 'Najork: UK tax briefing pending'],
+];
+
+const ALERTS = [
+  { name: 'Sung, Taekyong — O-1 EOS', meta: 'O-1 petition filed Feb 24 at deadline. Authorization expires Feb 26. Receipt notice pending.', severity: 'urgent', tag: 'O-1', program: 'immigration' },
+  { name: 'Japan Tax Return Deadline', meta: '2025 Japan tax returns due March 15, 2026. Payment process issue: Japan tax authorities do not accept overseas payments. EY + Treasury coordinating.', severity: 'urgent', tag: 'Global Mobility', program: 'mobility' },
+  { name: 'Harris, Muhammad — TN Application', meta: 'Employee raised complaints about TN change of employer timeline. Hiring team awaiting update. Fragomen collecting docs.', severity: 'urgent', tag: 'TN', program: 'immigration' },
+  { name: 'Yin, Aiwei — H-1B RFE', meta: 'H-1B RFE received. Employee considering travel risk (consular processing fee $100K if H-1B approved abroad). Stay in US advised.', severity: 'urgent', tag: 'H-1B', program: 'immigration' },
+  { name: 'Dhankhar, Sudhir — Not Contacted', meta: 'Case initiated but Sudhir has not received any communication from Fragomen despite multiple follow-ups from Aileen Zheng.', severity: 'urgent', tag: 'Fragomen', program: 'immigration' },
+  { name: 'George, Richin — H-1B Extension', meta: 'H-1B extension filed January 2026. ~8 month USCIS processing time. Employee advised not to leave US during processing.', severity: 'friction', tag: 'H-1B', program: 'immigration' },
+  { name: 'Li, Byron — Japan Cost Projection', meta: '3-month Japan assignment cost estimate requested. EY awaiting equity amount confirmation before completing projection.', severity: 'friction', tag: 'Short-Term Assign', program: 'mobility' },
+  { name: 'Peddagolla, Balakrishna — DE Visa Appointment', meta: 'Germany visa appointment only available March 30 at SF Mission consulate. Fragomen following up on scheduling.', severity: 'friction', tag: 'Germany Visa', program: 'immigration' },
+  { name: 'PERM Recruitment — 3 Cases', meta: 'Newspaper/radio ad placements needed for Ghosh, Jotwani, Mehta PERM cases. AdNet quotes sent to Katja for billing approval.', severity: 'friction', tag: 'PERM', program: 'immigration' },
+  { name: 'Mirlach, Lisa — O-1A Letters', meta: 'O-1A petition at Milstein. Need letters from CARIAD judging experience. Classification of role is confidential — complicates evidence collection.', severity: 'friction', tag: 'O-1A', program: 'immigration' },
+  { name: 'H-1B 2026 Lottery — Salary Assessment', meta: 'Applied\'s bi-annual merit process delayed; salaries not confirmed yet. Preliminary prevailing wage assessment submitted to Fragomen.', severity: 'friction', tag: 'H-1B Lottery', program: 'immigration' },
+  { name: 'Morales Velez, Alejandra — TN Start Date', meta: 'URGENT TN initiation. Fragomen recommends March 27 start date (15 business days USCIS processing from filing).', severity: 'friction', tag: 'TN', program: 'immigration' },
+  { name: 'Najork, Max — UK Tax Briefing', meta: 'Germany to US relocation Jan 2026. EY UK AML checks require board member list. Pre-departure tax briefing not yet scheduled.', severity: 'friction', tag: 'Relocation', program: 'mobility' },
+  { name: 'Saudi Arabia BVV — 4 Employees', meta: 'Curtsinger, Lu, Burdge, Hantsbarger at final submission stage for Saudi Arabia Business Visit Visas. Documents in progress.', severity: 'friction', tag: 'Biz Visitor', program: 'immigration' },
+];
+
+const MOBILITY_EMPLOYEES = [
+  { name: 'William Chen', route: 'US → Japan', program: 'Relocation', status: 'active', tax: 'EY Filing' },
+  { name: 'Jingyi Yang', route: 'US → Germany', program: 'Relocation', status: 'active', tax: 'EY Filing' },
+  { name: 'Max Najork', route: 'Germany → US', program: 'Relocation', status: 'active', tax: 'Pending Brief' },
+  { name: 'Byron Li', route: 'US → Japan', program: 'Short-Term Assign', status: 'pending', tax: 'Cost Est. Pending' },
+  { name: 'Dhruv Swarup', route: 'US → India', program: 'Secondment', status: 'active', tax: 'Tax Filing Only' },
+  { name: 'Sonam Huang', route: 'US → Japan', program: 'Secondment', status: 'active', tax: 'EY Filing' },
+  { name: '2025 Rotators (~25)', route: 'US → Japan', program: 'Rotation Program', status: 'active', tax: 'EY Questionnaires' },
+  { name: 'Deepak V', route: 'India/US → UK', program: 'Business Visit', status: 'complete', tax: 'N/A' },
+  { name: 'Tetiana Dyachok', route: 'Various', program: 'EY Tax Lead', status: 'active', tax: 'EY Managing' },
+];
+
+new Chart(document.getElementById('petitionChart'), { type: 'doughnut', data: { labels: PETITION_DATA.map(d => d.type), datasets: [{ data: PETITION_DATA.map(d => d.count), backgroundColor: PETITION_DATA.map(d => d.color + 'cc'), borderColor: PETITION_DATA.map(d => d.color), borderWidth: 1.5, hoverOffset: 8 }] }, options: { responsive: true, maintainAspectRatio: false, cutout: '62%', plugins: { legend: { position: 'right', labels: { font: { size: 10 }, padding: 8, boxWidth: 12, boxHeight: 12 } }, tooltip: { callbacks: { label: (ctx) => ` ${ctx.label}: ${ctx.parsed} cases (${Math.round(ctx.parsed / 357 * 100)}%)` } } } } });
+new Chart(document.getElementById('mobilityChart'), { type: 'bar', data: { labels: MOBILITY_DATA.map(d => d.program), datasets: [{ data: MOBILITY_DATA.map(d => d.count), backgroundColor: MOBILITY_DATA.map(d => d.color + 'cc'), borderColor: MOBILITY_DATA.map(d => d.color), borderWidth: 1.5, borderRadius: 6 }] }, options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y', plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => ` ${ctx.parsed.x} participants` } } }, scales: { x: { beginAtZero: true, grid: { color: '#e3e8f0' }, ticks: { font: { size: 11 }, stepSize: 5 } }, y: { grid: { display: false }, ticks: { font: { size: 11 } } } } } });
+const hCM=['heat-none','heat-green','heat-yellow','heat-orange','heat-red'],hLM=['N/A','OK','Minor Delay','Friction','URGENT'];
+function buildHeatmap(){const t=document.getElementById('heatmap');let h='<thead><tr><th class="row-label">Process Stage</th>';HEATMAP_COLS.forEach(c=>{h+=`<th>${c}</th>`});h+='</tr></thead>';t.innerHTML=h;let b='<tbody>';HEATMAP_STAGES.forEach((s,r)=>{b+=`<tr><td class="stage-label">${s}</td>`;HEATMAP_COLS.forEach((c,ci)=>{const v=HEATMAP_CELLS[r][ci],cl=hCM[v],lb=hLM[v],n=(HEATMAP_NOTES[r]&&HEATMAP_NOTES[r][ci])||'',dn=n.replace(/'\/g,'&apos;').replace(\/"\/g,'&quot;'),ck=v>0?`onclick="showModal('${s} — ${c}','${dn||lb}')"`:'';
+if(v===0){b+=`<td class="${cl}"><div class="heat-cell-inner"><span style="opacity:0.4">—</span></div></td>`;}else{b+=`<td class="${cl}" ${ck} title="${n||lb}"><div class="heat-cell-inner"><span class="heat-cell-label">${lb}</span>${n?`<span class="heat-cell-note">${n.substring(0,45)}${n.length>45?'…':''}</span>`:''}</div></td>`;}});b+='</tr>';});b+='</tbody>';t.innerHTML+=b;}buildHeatmap();
+let cP='all',cS='all';
+function renderAlerts(){const l=document.getElementById('alertList'),f=ALERTS.filter(a=>{if(cP!=='all'&&a.program!==cP)return false;if(cS==='urgent'&&a.severity!=='urgent')return false;if(cS==='friction'&&a.severity!=='friction')return false;return true;});document.getElementById('kpiUrgent').textContent=ALERTS.filter(a=>a.severity==='urgent').length;document.getElementById('kpiFriction').textContent=ALERTS.filter(a=>a.severity!=='urgent').length;document.getElementById('urgentBadge').textContent=`⚡ ${f.filter(a=>a.severity==='urgent').length} Urgent`;l.innerHTML=f.map(a=>{const cl=a.severity==='urgent'?'red':a.severity==='friction'?'orange':'yellow',tc=a.severity==='urgent'?'tag-red':'tag-orange',sn=a.meta.replace(/'\/g,"\\'");return`<div class="alert-item ${cl}" onclick="showModal('${a.name}','${sn}')"><div class="alert-name">${a.name}</div><div class="alert-meta">${a.meta.substring(0,90)}${a.meta.length>90?'…':''}</div><span class="alert-tag ${tc}">${a.tag}</span><span class="alert-tag tag-blue" style="margin-left:4px">${a.program==='immigration'?'🛂 Immigration':'🌏 Global Mobility'}</span></div>`;}).join('');}
+function renderMobilityTable(){const sc={'active':{bg:'#d4f7e2',color:'#1a6e3a'},'pending':{bg:'#fef9d5',color:'#8a6800'},'complete':{bg:'#eef2fd',color:'#2d5be3'}};document.getElementById('mobilityTableBody').innerHTML=MOBILITY_EMPLOYEES.map(e=>{const s=sc[e.status]||sc['active'];return`<tr><td style="font-weight:600">${e.name}</td><td>${e.route}</td><td>${e.program}</td><td><span class="status-pill" style="background:${s.bg};color:${s.color}">${e.status.charAt(0).toUpperCase()+e.status.slice(1)}</span></td><td>${e.tax}</td></tr>`;}).join('');}
+function applyFilters(){cP=document.getElementById('filterProgram').value;cS=document.getElementById('filterSeverity').value;renderAlerts();}renderAlerts();renderMobilityTable();
+function showModal(t,b){document.getElementById('modalTitle').textContent=t;document.getElementById('modalBody').textContent=b;document.getElementById('tooltipModal').classList.add('show');document.getElementById('tooltipOverlay').classList.add('show');}
+function closeModal(){document.getElementById('tooltipModal').classList.remove('show');document.getElementById('tooltipOverlay').classList.remove('show');}
+</script>
+</body>
+</html>
